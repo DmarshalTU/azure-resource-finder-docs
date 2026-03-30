@@ -54,9 +54,11 @@ $ azrf secret DB_PASSWORD
 | Search | Method | Time | Notes |
 |--------|--------|------|-------|
 | VM, storage, keyvault, etc. | Resource Graph | **< 1 second** | Instant |
-| Secret by name (113 vaults) | Parallel SDK | **~2.5 min** | 28 workers |
-| Secret pattern in one vault | Direct CLI | **~15 sec** | 535 secrets filtered |
-| Blob containers | Parallel CLI | **~30 sec** | Cross-storage |
+| Secret by name (113 vaults) | Parallel SDK | **~2.5 min** | NumCPU×2 workers |
+| Secret pattern in one vault | Key Vault SDK | **~1.5–2 sec** | No subprocess, cached token |
+| Blob containers | ARM REST + Resource Graph | **< 2 sec** | Pure Go, no subprocess |
+| SQL / Postgres / MySQL / MariaDB databases | Resource Graph | **< 1 second** | Instant |
+| Subnets, Cosmos MongoDB | Resource Graph | **< 1 second** | Instant |
 
 ---
 
@@ -314,7 +316,7 @@ Checks for a newer release and downloads the new binary next to the current one.
 
 ### Two-tier search strategy
 1. **Azure Resource Graph** — fast, single API call, covers the entire tenant in milliseconds
-2. **Parallel Azure CLI / SDK fallback** — for nested resources (secrets, blob containers, subnets) that Resource Graph doesn't fully index
+2. **Native SDK / ARM REST fallback** — for nested resources not fully indexed by Resource Graph (Key Vault secrets via data-plane SDK; blob containers and file shares via direct ARM REST). No `az` subprocess is ever spawned.
 
 ### Parallel processing
 - Worker count: `NumCPU × 2` — no artificial cap, uses every core available
