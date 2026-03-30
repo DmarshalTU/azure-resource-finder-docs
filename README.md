@@ -203,6 +203,57 @@ JSON schema (`azure-resource-finder.results.v1`):
 
 ---
 
+## azrf-agent — pipeline / FinOps engine
+
+`azrf-agent` is a separate binary included in every release alongside the interactive CLI. It is designed for CI/CD pipelines, GitOps workflows, and FinOps automation engines where you need clean JSON, reliable exit codes, and no human-facing output.
+
+| | `azrf` | `azrf-agent` |
+|---|---|---|
+| Output | Human-readable (emoji, progress) | Always JSON on stdout |
+| Stderr | Banner + progress indicators | Silent (errors only) |
+| Exit codes | 0 = found, 1 = not found | 0 = found, 1 = not found, **2 = error** |
+| Flags | `-json`, `-quiet`, `-export` | None needed |
+
+```bash
+# Fail a pipeline step if a secret doesn't exist
+if ! azrf-agent secret DB_PASSWORD > result.json; then
+  echo "Secret not found — aborting deploy"
+  exit 1
+fi
+
+# Extract subscription from results
+SUB=$(jq -r '.resources[0].subscriptionId' result.json)
+
+# Enforce a tag policy across all VMs
+azrf-agent tag Environment "" | jq -r '.resources[].name'
+```
+
+Output envelope:
+
+```json
+{
+  "schema": "azure-resource-finder.results.v1",
+  "agentVersion": "1.0.0",
+  "searchType": "secret",
+  "searchValue": "DB_PASSWORD",
+  "durationMs": 2937,
+  "workers": 20,
+  "count": 1,
+  "resources": [...]
+}
+```
+
+Binaries follow the same naming convention as the CLI:
+
+| Platform | Binary |
+|----------|--------|
+| macOS Apple Silicon | `azrf-agent-darwin-arm64` |
+| macOS Intel | `azrf-agent-darwin-amd64` |
+| Linux x64 | `azrf-agent-linux-amd64` |
+| Windows x64 | `azrf-agent-windows-amd64.exe` |
+
+---
+
 ## Export results
 
 ```bash
@@ -266,7 +317,7 @@ Checks for a newer release and downloads the new binary next to the current one.
 2. **Parallel Azure CLI / SDK fallback** — for nested resources (secrets, blob containers, subnets) that Resource Graph doesn't fully index
 
 ### Parallel processing
-- Worker count: `NumCPU × 2`, capped at 50
+- Worker count: `NumCPU × 2` — no artificial cap, uses every core available
 - Separate worker pools per search type
 - Atomic progress counters, early termination on limit
 
