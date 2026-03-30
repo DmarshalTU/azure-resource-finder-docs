@@ -1,296 +1,278 @@
-# Azure Resource Finder
+# azrf — Azure Resource Finder
 
-🚀 **Lightning-fast Azure resource discovery across multiple subscriptions**
+> **Find any Azure resource across all your subscriptions in seconds.**
 
-A high-performance Go tool for quickly finding Azure resources by name, IP address, hostname, tags, or resource type. Features parallel processing, intelligent fallback mechanisms, and comprehensive coverage of 50+ Azure resource types.
-
-**User guide (all search types, flags, limits):** [docs/README.md](docs/README.md)
-
-## ✨ Features
-
-- **⚡ Lightning Fast**: Parallel processing with dynamic worker pools
-- **🔍 Comprehensive Search**: 50+ Azure resource types supported
-- **🔄 Smart Fallback**: Resource Graph + Azure CLI fallback for nested resources
-- **📊 Real-time Progress**: Visual progress indicators with timing
-- **📁 Export Options**: JSON and CSV export capabilities
-- **🎯 Early Termination**: Configurable limits for optimal performance
-- **🛡️ Error Handling**: Graceful handling of permissions and API limits
-- **🔗 Azure Portal Links**: Direct links to resources in Azure Portal
-- **🔐 Advanced Secret Search**: Search in specific vaults or across all vaults
-- **📈 Performance Optimized**: Connection pooling and memory management
-
-## 🚀 Performance
-
-- **Secrets Search**: 113 Key Vaults in ~2.5 minutes using 28 workers
-- **Resource Graph**: Sub-second queries for most resource types
-- **Parallel Processing**: Dynamic worker count based on CPU cores (capped at 50)
-- **Optimized CLI Calls**: Direct Azure SDK + efficient CLI fallbacks
-- **Connection Pooling**: Shared HTTP client with connection reuse
-- **Memory Optimization**: Pre-allocated slices with capacity hints
-- **Early Termination**: Configurable limits for faster results
-
-## 📋 Supported Resource Types
-
-### Core Resources
-- Virtual Machines, VM Scale Sets, VM Images
-- Storage Accounts, Blob Containers, File Shares
-- SQL Servers/Databases, PostgreSQL, MySQL, MariaDB
-- Key Vaults, Secrets, Managed Identities
-- Container Registries, AKS Clusters, Container Apps
-
-### Secret Search Features
-- **Specific Vault Search**: `secret-in-vault <vault> <pattern>` - Fast search in known vault
-- **Cross-Vault Search**: `secrets-contain <word> [limit]` - Search all vaults for pattern
-- **Global Secret Search**: `secret <name> [limit]` - Find specific secret across vaults
-
-### Networking
-- Virtual Networks, Subnets, Route Tables
-- Load Balancers, Application Gateways
-- Network Security Groups, Firewall Policies
-- ExpressRoute Circuits, VPN Gateways
-- Front Doors, CDN Profiles
-
-### Data & Analytics
-- Cosmos DB, Redis Cache, Event Hubs
-- Log Analytics Workspaces, Application Insights
-- Data Lake Storage, Backup Vaults
-
-### Application Services
-- Web Apps, Function Apps, API Apps
-- Logic Apps, Container Instances
-- Service Bus, API Management
-- Service Fabric Clusters
-
-## 🛠️ Installation
-
-### Prerequisites
-- Go 1.23+ 
-- Azure CLI installed and authenticated
-- Azure Resource Graph permissions
-
-### Quick Start
-```bash
-# Clone the repository
-git clone <repository>
-cd azure-resource-finder
-
-# Build for your platform
-make build
-
-# Or build manually (short CLI name)
-go build -trimpath -o azrf ./cmd/azure-resource-finder
-```
-
-### Cross-Platform Builds
-```bash
-# Build for all platforms
-make build-all
-
-# Build for specific platform
-make build-windows  # Windows
-make build-linux    # Linux
-make build-macos    # macOS (Intel + ARM)
-
-# Create distribution packages
-make dist
-```
-
-### Windows Users
-```powershell
-# Use PowerShell build script (recommended for Windows)
-.\build.ps1
-
-# Or use Makefile (requires Unix tools)
-make build-all
-```
-
-### Using Makefile
-```bash
-make help          # Show all available commands
-make test          # Run tests
-make fmt           # Format code
-make lint          # Lint code
-make clean         # Clean build artifacts
-make version       # Show version information
-```
-
-## 📖 Usage
-
-### Basic Search
-```bash
-# Search for secrets
-./azrf.exe secret my-secret-name
-
-# Search by IP address
-./azrf.exe ip 4.242.81.168
-
-# Search by hostname
-./azrf.exe hostname myapp.azurewebsites.net
-
-# Search by resource name
-./azrf.exe resource my-vm-name
-
-# Search by tag
-./azrf.exe tag Environment Production
-```
-
-### Advanced Secret Search
-```bash
-# Search secrets in specific Key Vault (fast)
-./azrf.exe secret-in-vault my-keyvault-name my-secret-pattern
-
-# Search all secrets containing word across all vaults
-./azrf.exe secrets-contain sql 50
-
-# Search with limit
-./azrf.exe secret my-secret 100
-```
-
-### Advanced Search
-```bash
-# Search for specific resource types
-./azrf.exe vmss agent-vmss-core
-./azrf.exe frontdoor apilandingpage-cdn-prod
-./azrf.exe blobcontainer qa-automation-blob
-
-# Export results
-./azrf.exe secret my-secret --export
-
-# Limit secret search (positional limit)
-./azrf.exe secret my-secret 100
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-- `AZURE_CLI_DISABLE_CONNECTION_VERIFICATION`: Disable connection verification
-- `AZURE_CLI_DISABLE_TELEMETRY`: Disable telemetry
-
-### Command Line Flags
-- `-json`: Print one JSON document on stdout (for scripts and FinOps pipelines; use with `-quiet` for clean stdout)
-- `-quiet`: Suppress banner and stderr progress
-- `-export`: Write JSON and CSV files after the search (trailing `--export` is still accepted)
-- `-version`: Print embedded version / build metadata
-- Secret limits: `secret <name> [limit]` — use `0` for no limit (default: 1000)
-
-### Keygen (licensing, distribution, updates)
-Shipped binaries are **licensed products**: searches call Keygen to validate `KEYGEN_LICENSE_KEY` before running (see [Keygen docs](https://keygen.sh/docs/)).
-
-| Env / command | Purpose |
-|---------------|---------|
-| `KEYGEN_ACCOUNT_ID`, `KEYGEN_LICENSE_KEY` | Required on release builds for every search |
-| `KEYGEN_PRODUCT_ID` | Required for `azrf update` (artifact download) |
-| `AZRF_REQUIRE_LICENSE=1` | When building from source, turn on the same enforcement as release binaries |
-| `azrf license validate [KEY]` | Call Keygen [validate-key](https://keygen.sh/docs/api/licenses/) |
-| `azrf update` | Resolve [upgrade](https://keygen.sh/docs/api/releases/) vs embedded semver, download matching `azrf-*` artifact |
-
-CI publishes GitHub **and** Keygen when repository secrets `KEYGEN_TOKEN`, `KEYGEN_ACCOUNT_ID`, and `KEYGEN_PRODUCT_ID` are set. Run `make dist` then `bash scripts/release-keygen.sh` locally with `VERSION_SEMVER` (no `v`). Binaries stay small via `-s -w` and `-trimpath`.
-
-## 🆕 New Features
-
-### Azure Portal Links
-All search results now include direct links to Azure Portal:
-- **One-click access** to any resource in Azure Portal
-- **No manual navigation** required
-- **Consistent format** across all resource types
-
-### Advanced Secret Search
-- **`secret-in-vault <vault> <pattern>`**: Fast search in specific Key Vault
-- **`secrets-contain <word> [limit]`**: Search all vaults for pattern
-- **Progress indicators** and **performance optimization**
-
-## 📚 Go package (FinOps / automation)
-
-Import the engine from your own services:
-
-```go
-import "github.com/denistu/azure-resource-finder/pkg/azrf"
-
-client := azrf.NewClient(azrf.WithVerbose(false))
-resources, err := client.RunSearch(ctx, "resource", "my-vm", "", 0)
-// RunSearch covers all CLI search kinds; use -json on the binary for subprocess integration.
-```
-
-Set the module path in `go.mod` to your fork if you rename the repository.
-
-## 🏗️ Architecture
-
-### Two-Tier Search Strategy
-1. **Resource Graph First**: Fast, broad searches using Azure Resource Graph
-2. **CLI Fallback**: Parallel Azure CLI calls for nested resources (secrets, containers, databases)
-
-### Parallel Processing
-- Dynamic worker count: `runtime.NumCPU() * 2`
-- Worker pools for Key Vaults, Storage Accounts, SQL Servers
-- Progress tracking with atomic counters
-
-### Error Handling
-- Graceful permission error handling
-- API rate limiting considerations
-- Fallback mechanisms for failed queries
-
-## 📊 Performance Benchmarks
-
-| Resource Type | Search Method | Time | Workers | Notes |
-|---------------|---------------|------|---------|-------|
-| Key Vault Secrets (Global) | Parallel CLI | ~2.5 minutes | 28 | Across all vaults |
-| Key Vault Secrets (Specific) | Direct CLI | ~15 seconds | N/A | Single vault search |
-| Storage Accounts | Resource Graph | <1 second | N/A | Instant results |
-| Virtual Machines | Resource Graph | <1 second | N/A | Instant results |
-| Blob Containers | Parallel CLI | ~30 seconds | 28 | Cross-storage search |
-| Secret Pattern Search | Optimized CLI | ~15 seconds | N/A | 535 secrets filtered |
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## 📦 Releases
-
-### Download Pre-built Binaries
-Binaries are distributed via **Keygen** to licensed customers. After purchase you receive a license key — use it to download the binary for your platform and activate your machine.
-
-**macOS:** after download run `xattr -d com.apple.quarantine azrf-darwin-arm64 && chmod +x azrf-darwin-arm64` once to allow execution.
-
-### Automated Builds
-This project uses GitHub Actions for automated builds and releases. When you push a tag starting with `v`, it automatically:
-1. Builds **azrf** for all supported platforms (`-trimpath`, stripped)
-2. Creates a GitHub release and uploads binaries + checksums
-3. Optionally publishes the same artifacts to **Keygen** (if `KEYGEN_*` secrets are configured)
-
-```bash
-# Create a new release
-git tag v1.0.1
-git push origin v1.0.1
-```
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🆘 Troubleshooting
-
-### Common Issues
-- **Permission Errors**: Ensure Azure CLI is authenticated with proper permissions
-- **Slow Performance**: Check network connectivity and Azure API status
-- **No Results**: Verify resource names and subscription access
-
-### Debug Mode
-```bash
-# Enable verbose logging
-export AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1
-./azrf.exe secret my-secret
-```
-
-## 🔗 Related Projects
-
-- [Azure CLI](https://github.com/Azure/azure-cli)
-- [Azure Resource Graph](https://docs.microsoft.com/en-us/azure/governance/resource-graph/)
-- [Azure SDK for Go](https://github.com/Azure/azure-sdk-for-go)
+A high-performance CLI tool for Azure engineers and FinOps teams. Search 50+ resource types by name, IP, hostname, tag, or secret — across every subscription you have access to — with sub-second results for most queries.
 
 ---
 
-**Made with ❤️ for Azure DevOps engineers** 
+## Why azrf?
+
+Azure Portal is slow and subscription-scoped. The CLI requires knowing which subscription a resource lives in. `azrf` searches **everywhere at once** — all subscriptions, all resource groups — and gives you a direct portal link to what you found.
+
+```
+$ azrf secret DB_PASSWORD
+
+🔐 Searching for secret: DB_PASSWORD
+🔍 Found 113 Key Vaults, checking in parallel...
+⚙️  Using 20 workers
+
+🔍 Progress: [113/113] 100.0% | Found: 1 | Elapsed: 2m31s
+
+📋 RESULTS
+==========
+✅ Found 1 resource:
+
+🔹 Resource #1:
+   📝 Name: DB_PASSWORD
+   🏷️  Type: Microsoft.KeyVault/vaults/secrets
+   🔐 Key Vault: prod-secrets-eastus
+   📁 Resource Group: production
+   📍 Location: eastus
+   🆔 Subscription: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   🔗 https://portal.azure.com/#view/...
+```
+
+---
+
+## Features
+
+- **⚡ Sub-second results** for most resource types via Azure Resource Graph
+- **🔍 50+ resource types** — VMs, secrets, databases, networking, containers, and more
+- **🔄 Smart fallback** — Resource Graph first, parallel Azure CLI for nested resources
+- **🔐 Advanced secret search** — find by name across all vaults, or scan values
+- **📊 Real-time progress** — live indicators with timing and found count
+- **📁 Export** — JSON and CSV with one flag
+- **🔗 Azure Portal links** — every result includes a direct deep link
+- **🤖 Script-friendly** — clean JSON output mode for pipelines and FinOps automation
+- **⚠️ Transparent coverage** — clearly reports when vaults or subscriptions are out of reach, so you always know what was actually searched
+
+---
+
+## Performance
+
+| Search | Method | Time | Notes |
+|--------|--------|------|-------|
+| VM, storage, keyvault, etc. | Resource Graph | **< 1 second** | Instant |
+| Secret by name (113 vaults) | Parallel SDK | **~2.5 min** | 28 workers |
+| Secret pattern in one vault | Direct CLI | **~15 sec** | 535 secrets filtered |
+| Blob containers | Parallel CLI | **~30 sec** | Cross-storage |
+
+---
+
+## Getting started
+
+### 1. Prerequisites
+
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed and signed in:
+  ```bash
+  az login
+  ```
+- A valid **azrf license key** (see [Licensing](#licensing))
+- If you have multiple subscriptions:
+  ```bash
+  az account set --subscription <id>
+  ```
+
+### 2. Download
+
+Binaries are distributed to licensed customers. After purchase you receive a license key and download instructions for your platform:
+
+| Platform | Binary |
+|----------|--------|
+| macOS Apple Silicon | `azrf-darwin-arm64` |
+| macOS Intel | `azrf-darwin-amd64` |
+| Linux x64 | `azrf-linux-amd64` |
+| Windows x64 | `azrf-windows-amd64.exe` |
+
+**macOS only** — run this once after download:
+```bash
+xattr -d com.apple.quarantine azrf-darwin-arm64
+chmod +x azrf-darwin-arm64
+```
+
+### 3. Activate your machine
+
+```bash
+export KEYGEN_LICENSE_KEY="your-license-key"
+azrf license activate
+```
+
+Output:
+```
+✅ Machine activated (id: abc-123...)
+   Activation saved to ~/.azrf/activation.json
+```
+
+You only need to do this **once per machine**.
+
+### 4. Run a search
+
+```bash
+azrf resource my-vm
+azrf ip 203.0.113.10
+azrf secret DB_PASSWORD
+```
+
+---
+
+## All search types
+
+### By name or attribute
+
+```bash
+azrf resource <name>           # any resource whose name contains the string
+azrf ip <address>              # resources tied to a public IP
+azrf hostname <fqdn>           # App Services, Function Apps, Static Web Apps
+azrf tag <key> <value>         # exact tag key + value match
+azrf type <arm-type>           # ARM resource type substring
+```
+
+### Key Vault secrets
+
+```bash
+azrf secret <name>             # find secret by name across all vaults (default: up to 1000)
+azrf secret <name> 100         # stop after 100 matches
+azrf secret <name> 0           # no limit — return everything
+azrf secret-in-vault <vault> <pattern>   # search inside one specific vault (fast)
+azrf secrets-contain <word>    # secrets whose name contains a word, across all vaults
+azrf secrets-contain <word> 50 # same, capped at 50
+```
+
+### Compute
+
+`vm` `vmss` `vmimage` `snapshot` `availset` `ppg` `aks` `aci` `containerapp` `sfcluster`
+
+### Applications
+
+`webapp` `functionapp` `logicapp` `apiapp`
+
+### Data & storage
+
+`storage` `blobcontainer` `fileshare` `datalake` `sqldb` `sqlserver` `postgresql` `mysql` `mariadb` `mongodb` `cosmosdb` `redis` `backupvault`
+
+### Messaging
+
+`eventhub` `servicebus`
+
+### Containers & registries
+
+`registry`
+
+### Networking
+
+`vnet` `subnet` `loadbalancer` `nsg` `routetable` `appgateway` `frontdoor` `privateendpoint` `expressroute` `vpngateway` `cdn` `ddos` `firewallpolicy`
+
+### Platform & operations
+
+`keyvault` `appinsights` `loganalytics` `apim` `automation` `actiongroup` `policy` `identity`
+
+---
+
+## Flags
+
+| Flag | Effect |
+|------|--------|
+| `-json` | Print one JSON document on stdout — use with `-quiet` for clean piping |
+| `-quiet` | No banner or progress on stderr |
+| `-export` | Write results to `.json` and `.csv` in the current directory |
+| `-version` | Print version and exit |
+| `-h` / `--help` | Show built-in help |
+
+---
+
+## Script / automation mode
+
+```bash
+azrf -json -quiet resource my-app | jq '.resources[].name'
+```
+
+JSON schema (`azure-resource-finder.results.v1`):
+
+```json
+{
+  "schema": "azure-resource-finder.results.v1",
+  "cliVersion": "1.0.0",
+  "searchType": "resource",
+  "searchValue": "my-app",
+  "durationMs": 312,
+  "count": 3,
+  "resources": [...]
+}
+```
+
+---
+
+## Export results
+
+```bash
+azrf -export resource my-app
+# writes: azure_resources_resource_my-app_20260101_120000.json
+#         azure_resources_resource_my-app_20260101_120000.csv
+```
+
+---
+
+## Licensing
+
+azrf is a **commercial product** distributed under a proprietary license. Each license key is tied to a specific machine via hardware fingerprinting.
+
+| Command | Purpose |
+|---------|---------|
+| `azrf license activate` | Register this machine — **required on first install** |
+| `azrf license validate` | Check if your license key is currently valid |
+| `azrf license deactivate` | Unregister this machine before moving to another device |
+
+`KEYGEN_LICENSE_KEY` must be set in your environment for all searches on release builds:
+
+```bash
+# bash / zsh
+export KEYGEN_LICENSE_KEY="your-license-key"
+
+# PowerShell
+$env:KEYGEN_LICENSE_KEY = "your-license-key"
+```
+
+---
+
+## Self-update
+
+```bash
+azrf update
+```
+
+Checks for a newer release and downloads the new binary next to the current one. Follow the printed `mv` command to install it.
+
+---
+
+## Troubleshooting
+
+| Error | Fix |
+|-------|-----|
+| `failed to get access token` | Run `az login` and complete MFA if required |
+| `KEYGEN_LICENSE_KEY is required` | Set the env var: `export KEYGEN_LICENSE_KEY="..."` |
+| `this machine is not activated` | Run `azrf license activate` |
+| `license not valid (EXPIRED)` | Renew your license — contact your vendor |
+| `license not valid (SUSPENDED)` | Contact your vendor |
+| `X vault(s) were inaccessible` | Those vaults have network ACLs or you lack permissions — results may be incomplete |
+| No results, some subscriptions missing | Run `az account list` and check you have Reader on all subscriptions |
+
+---
+
+## Architecture
+
+### Two-tier search strategy
+1. **Azure Resource Graph** — fast, single API call, covers the entire tenant in milliseconds
+2. **Parallel Azure CLI / SDK fallback** — for nested resources (secrets, blob containers, subnets) that Resource Graph doesn't fully index
+
+### Parallel processing
+- Worker count: `NumCPU × 2`, capped at 50
+- Separate worker pools per search type
+- Atomic progress counters, early termination on limit
+
+### License enforcement
+- Machine-locked via hardware fingerprint — one activation per device
+
+---
+
+© 2026 azrf. All rights reserved. Unauthorized redistribution prohibited.
